@@ -5,19 +5,19 @@ A small library that utilizes the idea of state-charts to manage web app behavio
 
 > Getters / Triggers: 
 
-let $machine = new HecterMachine(transitionGraph, initialState);
+let machine = new HecterMachine(transitionGraph, initialState);
 
-$machine.get( void );
-$machine.scheduleNext(eventName, actionData);
-$machine.transit(eventName, actionData);
-$machine.next( void );
-$machine.nextAll( void );
-$machine.disconnect();
+- machine.get( void );
+- machine.scheduleNext(eventName, actionData);
+- machine.transit(eventName, actionData);
+- machine.next( void );
+- machine.nextAll( void );
+- machine.disconnect();
 
 > Hooks:
 
-Machine.setRerenderHook( Function< state, error > );
-Machine.setActionHandlerHook( Function< machine, action> );
+- machine.setRerenderHook( Function< state, error > );
+- machine.setActionHandlerHook( Function< machine, action> );
 
 ## Usage
 
@@ -75,19 +75,19 @@ export { actionHandlerHookFactory, rerenderHookFactory }
 
 /** machine.js */
 
-const statesGraph = {
+const stateGraph = {
       idle:{
         $BUTTON_CLICK:{
           next:function(stateGraph, actionData){
             return actionData.text.length > 0 
                 ? 'searching' 
-                : this.withError(null, new Error("No text entered in form..."));
+                : {current:null, error:new Error("No text entered in form...")};
           },
           action:function(actionData = null){
             return {type:"MAKE_ENTRY",data:actionData};
           },
           parallel:function(stateGraph, currentState){
-            return "form.loading"
+            return "form.ready"
           }
         }
       },
@@ -98,30 +98,35 @@ const statesGraph = {
           }
         },
         $AJAX_ERROR_RESP:{
-          next:function(state, actionData){
+          next:function(state, currentState, actionData){
               return actionData instanceof Error ?
-               this.withError('idle', actionData) : this.withError(null, new Error("Invalid transition..."));
+               {current:'idle', error:actionData} : actionData == null ? 'idle' : {null, error:new Error("Invalid transition...")};
           },
           action:function(actionData = null){
             return null;
-          }
+          },
+	  parallel:function(stateGraph, currentState){
+	  	return "form.loading";
+	  }
         },
         $BUTTON_CLICK:{
-            next:function(state, actionDataorError){
+            next:function(state, actionData){
                 return 'canceled';
             }
         }
       },
       canceled:{
           $BUTTON_CLICK:{
-            next:function(state, actionDataorError){
+            next:function(state, actionData){
             
             }
           }
       }
 };
 
-const machine = new HecterMachine(, {current:'idle',parallel:''})
+const machine = new HecterMachine(stateGraph, {current:'idle',parallel:'form.ready'});
+
+export { machine }
 ```
 
 ```js
@@ -162,5 +167,41 @@ export { store }
   import React, { Component } from 'react'
   import { actionHandlerHookFactory, rerenderHookFactory } from './hooks.js'
   
+  class App extends Component {
+  	
+	constructor(props){
+
+		this.state = props.machine.get();
+
+		props.machine.setRerenderHook(rerenderHookFactory(this));
+		props.machine.setActionHandlerHook(actionHandlerHookFactory(
+			props.store
+		));
+	}
+
+     	componentDidMount(){
+	
+	}
+	
+	render(){
+	
+	}
+  }
   
+  export default App
+  
+```
+
+
+```js
+
+/** index.js */
+
+import ReactDOM from 'react-dom'
+import App from './App.js'
+import store from './store.js'
+import machine from './machine.js'
+
+ReactDOM.render(<App store={store} machine={machine} />, document.getElementById("root"))
+
 ```
