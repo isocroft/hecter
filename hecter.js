@@ -16,27 +16,42 @@ class Statemachine {
       }
       
       get(){
-        return this.state
+        return this.state;
       }
       
-      action(){
-        return this.action
+      disconnect(){
+        return (this.handlers = {}) !== null;
       }
       
-      transit(eventName, actionData, ){
+      transit(eventName, actionData){
           let transitionSet = this.graph[this.state.current];
           
           if(! transitionSet){
-              throw new Error("state not in set");
+              return this.emit("rerenderHook", this.state, new Error("state not in set"));
           }
 
           let newBehaviorState = transitionSet[eventName];
           
-          let newState = newBehaviorState.next(this.graph, this.state.current, actionData);
+          let currentState = newBehaviorState.next(this.graph, this.state.current, actionData);
+          let parallelState = newBehaviorState.parallel(this.graph, this.state.current);
           
-          if(newState === null){
-          
+          if(currentState instanceof Object){
+                  currentState.parallel = parallelState;
+          }else if(typeof currentState === 'string'){
+                  currentState = {
+                        current:currentState,
+                        parallel:parallelState
+                  }
           }
+            
+          this.state = currentState;
+          let action = actionData === null ? null : newBehaviorState.action(actionData);
+          
+          this.emit("rerenderHook", this.state, );
+          
+            if(action !== null){
+                  return this.emit("actionHandlerHook", this, action);
+            }
       }
       
       on(handlerKey, handler){
