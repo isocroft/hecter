@@ -32,7 +32,7 @@ class StateMachine {
 
           let newBehaviorState = transitionSet[eventName];
           
-          let currentState = newBehaviorState.next(this.graph, this.state.current, actionData);
+          let currentState = newBehaviorState.guard(this.graph, this.state.current, actionData);
           let parallelState = newBehaviorState.parallel(this.graph, this.state.current);
           
           if(currentState instanceof Object){
