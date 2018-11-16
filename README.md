@@ -12,7 +12,7 @@ let machine = new HecterMachine(transitionGraph, initialState);
 - machine.transit(eventName, actionData);
 - machine.next( void );
 - machine.nextAll( void );
-- machine.disconnect();
+- machine.disconnect( void );
 
 > Hooks:
 
