@@ -50,7 +50,7 @@ class StateMachine {
           }
             
           this.state = currentState;
-          let action = actionData === null ? null : newBehaviorState.action(actionData);
+          let action = newBehaviorState.action === null && actionData === null ? null : newBehaviorState.action(actionData);
           
           this.emit("rerenderHook", this.state, (this.state.error !== null));
           
