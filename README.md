@@ -23,6 +23,7 @@ let machine = new HecterMachine(transitionGraph, initialState);
 
 > **Hecter** can be used with any data flow management tool (e.g. Redux / MobX / Radixx )
 
+- **asyncActions.js**
 
 ```js
 
@@ -50,13 +51,16 @@ const login = (machine, action) => (dispatch, getState) => {
 export { login }
 ```
 
+- **hooks.js**
+
 ```js
 
 /** hooks.js */
 
 import { login } from './asyncActions.js'
 
-const rerenderHookFactory = (component) => (state, error) => {
+const rerenderHookFactory = (component) => (state, hasError) => {
+			component._hasError = hasError;
 			return component.setState(state);
 };
 
@@ -71,6 +75,8 @@ const actionHandlerHookFactory = (storeorActionDispatcher) => (machine, action) 
 export { actionHandlerHookFactory, rerenderHookFactory }
 ```
 
+- **machine.js**
+
 ```js
 
 /** machine.js */
@@ -78,7 +84,7 @@ export { actionHandlerHookFactory, rerenderHookFactory }
 const stateGraph = {
       idle:{
         $BUTTON_CLICK:{
-          next:function(stateGraph, currentState, actionData){
+          guard:function(stateGraph, currentState, actionData){
             return actionData.text.length > 0 
                 ? 'searching' 
                 : {current:null, error:new Error("No text entered in form...")};
@@ -93,37 +99,35 @@ const stateGraph = {
       },
       searching:{
         $AJAX_SUCCESS_RESP:{
-          next:function(stateGraph, actionData){
+          guard:function(stateGraph, actionData){
              return 'idle';
-          }
+          },
+	  action:null
         },
         $AJAX_ERROR_RESP:{
-          next:function(stateGraph, currentState, actionData){
+          guard:function(stateGraph, currentState, actionData){
               return actionData instanceof Error 
 	      ? {current:'idle', error:actionData} 
 	      : {current:null, error:new Error("Invalid transition...")};
           },
-          action:function(actionData = null){
-            return null;
-          },
+          action:null,
 	  parallel:function(stateGraph, currentState){
 	  	return "form.loading";
 	  }
         },
         $BUTTON_CLICK:{
-            next:function(state, actionData){
+            guard:function(state, actionData){
                 return 'canceled';
-            }
+            },
+	    action:null
         }
       },
       canceled:{
           $BUTTON_CLICK:{
-            next:function(state, actionData){
-		return ''
+            guard:function(state, actionData){
+		return 'searching'
             },
-	    action:function(actionData = null){
-            	return null;
-	    }
+	    action:null
           }
       }
 };
@@ -132,6 +136,8 @@ const machine = new HecterMachine(stateGraph, {current:'idle',parallel:'form.rea
 
 export { machine }
 ```
+
+- **store.js**
 
 ```js
 
@@ -167,7 +173,7 @@ function(state, action){
 		return state
   }
 },
-{todos:[]},
+{items:[]},
 applyMiddleware(thunkMiddleware, loggerMiddleware)
 );
 
@@ -176,6 +182,47 @@ store.subscribe(machine.nextAll.bind(machine));
 export { store }
 
 ```
+- **FormUnitComponent.js**
+
+```js
+
+/** FormUnitComponent.js */
+
+const renderInput = (data, behavior) => (
+	behavior.parallel == "form.loading"
+	? <input type="text" name="query" value={p.text} readonly="readonly">
+	: <input type="text" name="query" value={p.text}>
+)
+
+const renderSearchButton = (data, behavior) => (
+	behavior.parallel == "form.loading"
+	? <button type="button" name="search" onClick={this.buttonClick.bind(this)} disabled="disabled">Searching...</button> 
+	: <button type="button" name="search" onClick={this.buttonClick.bind(this)}>Search</button>
+)
+
+const renderCancelButton = (data, behavior) => (
+	behavior.current === 'idle'
+	? <button type="button" name="cancel" onClick={this.buttonClick.bind(this)} disabled="disabled">Cancel</button> 
+	: (behavior.current === 'canceled' 
+			? <button type="button" name="cancel" onClick={this.buttonClick.bind(this)}>Canceling...</button>
+			: <button type="button" name="cancel" onClick={this.buttonClick.bind(this)}>Cancel</button>)
+)
+
+const FormUnit = props => 
+	<div>
+      		<form name="search" onSubmit={ (e) => e.preventDefault() }>
+		  	{renderInput(null, props.behavior)}
+	    	  	{renderSearchButton(null, props.behavior)}
+	    		{renderCancelButton(null, props.behavior)}
+              	</form>
+	    	{renderResult(props.items, props.behavior)}
+          </div>
+	  
+ export default FormUnit
+
+```
+
+- **App.js**
 
 ```js
 
@@ -183,6 +230,7 @@ export { store }
   
   import React, { Component } from 'react'
   import { actionHandlerHookFactory, rerenderHookFactory } from './hooks.js'
+  import FormUnit from './FormUnitComponent.js'
   
   class App extends Component {
   	
@@ -201,7 +249,9 @@ export { store }
 	}
 	
 	render(){
-	
+		let data = this.props.store.getState();
+		
+		<FormUnit items={data.items} behavior={this.state} />
 	}
   }
   
@@ -209,10 +259,11 @@ export { store }
   
 ```
 
+- **main.js**
 
 ```js
 
-/** index.js */
+/** main.js */
 
 import ReactDOM from 'react-dom'
 import App from './App.js'
