@@ -57,6 +57,10 @@ export { login }
 import { login } from './asyncActions.js'
 
 const rerenderHookFactory = (component) => (state, error) => {
+			if(error != void 0){
+				state.error = error;
+			}
+			
 			component.setState(state);
 };
 
@@ -99,8 +103,9 @@ const stateGraph = {
         },
         $AJAX_ERROR_RESP:{
           next:function(state, currentState, actionData){
-              return actionData instanceof Error ?
-               {current:'idle', error:actionData} : actionData == null ? 'idle' : {null, error:new Error("Invalid transition...")};
+              return actionData instanceof Error 
+	      ? {current:'idle', error:actionData} 
+	      : actionData == null ? 'idle' : {null, error:new Error("Invalid transition...")};
           },
           action:function(actionData = null){
             return null;
@@ -118,8 +123,11 @@ const stateGraph = {
       canceled:{
           $BUTTON_CLICK:{
             next:function(state, actionData){
-            
-            }
+		return ''
+            },
+	    action:function(actionData = null){
+            	return null;
+	    }
           }
       }
 };
@@ -136,18 +144,31 @@ export { machine }
 import {createStore, applyMiddleware } from 'redux'
 import machine from './machine.js'
 
-const thunkMiddleware = () => {
+const thunkMiddleware = ({ dispatch, getState }) => next => action => {
+	
+    if (typeof action === 'function') {
+      	return action(dispatch, getState);
+    }
 
-}
+    return next(action);
+};
 
-const loggerMiddleware = () => {
-
-}
+const loggerMiddleware = ({ getState }) => next => action => {
+	
+	console.log("PREV APP DATA STATE: ", getState());
+	next(action);
+	console.log("NEXT APP DATA STATE: ", getState());
+	
+};
 
 const store = createStore(
 function(state, action){
   switch(action.type){
-    ...
+    	case "MAKE_ENTRY":
+		return Object.ass
+	break;
+	default:
+		return state
   }
 },
 {todos:[]},
