@@ -31,21 +31,35 @@ let machine = new HecterMachine(transitionGraph, initialState);
 
 import axios from 'axios'
 
-const login = (machine, action) => (dispatch, getState) => {
+const login = (machine, action) => {
+	
+	const CancelToken = axios.CancelToken;
+	
+	return (dispatch, getState) => {
+	
+		const source = CancelToken.source();
+		const storeDispatch = function(_action){
+			setTimeout(() => {
+				dispatch(_action);
+			},0);
+		};
 
-			return axios.get("https://example.com", {}).then(function(data){
-				machine.scheduleNext("AJAX_SUCCESS_RESP", null);
-				return dispatch({
-					type:action.type,
-					data:data
-				});
-			}).catch(function(thrownError){
-				machine.scheduleNext("AJAX_ERROR_RESP", thrownError);
-				return dispatch({
-					type:"",
-					data:null
-				});
+		return axios.get("https://jsonplaceholder.typicode.com/"+action.text, {
+			cancelToken: source.token
+		}).then(function(data){
+			machine.scheduleNext("AJAX_SUCCESS_RESP", null);
+			return storeDispatch({
+				type:action.type,
+				data:data
 			});
+		}).catch(function(thrownError){
+			machine.scheduleNext("AJAX_ERROR_RESP", thrownError);
+			return storeDispatch({
+				type:"",
+				data:null
+			});
+		});
+	}
 };
 
 export { login }
@@ -167,7 +181,9 @@ const store = createStore(
 function(state, action){
   switch(action.type){
     	case "MAKE_ENTRY":
-		return Object.ass
+		return Object.assign({}, state, {
+			items:action.data
+		});
 	break;
 	default:
 		return state
@@ -206,6 +222,20 @@ const renderCancelButton = (data, behavior) => (
 	: (behavior.current === 'canceled' 
 			? <button type="button" name="cancel" onClick={this.buttonClick.bind(this)}>Canceling...</button>
 			: <button type="button" name="cancel" onClick={this.buttonClick.bind(this)}>Cancel</button>)
+)
+
+const renderList = (data, behavior) => (
+	data.length 
+	? <ul>
+		data.map(item => 
+			<li>item</li>
+		);
+	  </ul>
+	: <p>No data yet!</p>
+)
+
+const renderResult = (data, behavior) => (
+
 )
 
 const FormUnit = props => 
