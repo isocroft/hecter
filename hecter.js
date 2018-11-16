@@ -47,7 +47,7 @@ class Statemachine {
           this.state = currentState;
           let action = actionData === null ? null : newBehaviorState.action(actionData);
           
-          this.emit("rerenderHook", this.state, );
+          this.emit("rerenderHook", this.state, (this.state.error !== null));
           
             if(action !== null){
                   return this.emit("actionHandlerHook", this, action);
@@ -94,12 +94,13 @@ class HecterMachine extends StateMachine {
         }
     }
     
-    setRerenderHook(){
-        const state = this.get();
-        const action = this.
+    setRerenderHook(callback){
+        return this.on("rerenderHook", callback);
     }
     
-    setAactionHandlerHook
+    setActionHandlerHook(callback){
+        return this.on("actionHandlerHook", callback);
+    }
 
 }
 
