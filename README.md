@@ -16,7 +16,7 @@ let machine = new HecterMachine(transitionGraph, initialState);
 
 > Hooks:
 
-- machine.setRerenderHook( Function< state, error > );
+- machine.setRerenderHook( Function< state, hasError > );
 - machine.setActionHandlerHook( Function< machine, action> );
 
 ## Usage
@@ -57,11 +57,7 @@ export { login }
 import { login } from './asyncActions.js'
 
 const rerenderHookFactory = (component) => (state, error) => {
-			if(error != void 0){
-				state.error = error;
-			}
-			
-			component.setState(state);
+			return component.setState(state);
 };
 
 const actionHandlerHookFactory = (storeorActionDispatcher) => (machine, action) => {
@@ -82,7 +78,7 @@ export { actionHandlerHookFactory, rerenderHookFactory }
 const stateGraph = {
       idle:{
         $BUTTON_CLICK:{
-          next:function(stateGraph, actionData){
+          next:function(stateGraph, currentState, actionData){
             return actionData.text.length > 0 
                 ? 'searching' 
                 : {current:null, error:new Error("No text entered in form...")};
@@ -102,10 +98,10 @@ const stateGraph = {
           }
         },
         $AJAX_ERROR_RESP:{
-          next:function(state, currentState, actionData){
+          next:function(stateGraph, currentState, actionData){
               return actionData instanceof Error 
 	      ? {current:'idle', error:actionData} 
-	      : actionData == null ? 'idle' : {null, error:new Error("Invalid transition...")};
+	      : {current:null, error:new Error("Invalid transition...")};
           },
           action:function(actionData = null){
             return null;
@@ -132,7 +128,7 @@ const stateGraph = {
       }
 };
 
-const machine = new HecterMachine(stateGraph, {current:'idle',parallel:'form.ready'});
+const machine = new HecterMachine(stateGraph, {current:'idle',parallel:'form.ready',error:null});
 
 export { machine }
 ```
