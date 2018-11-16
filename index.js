@@ -6,12 +6,11 @@
 */
 
 
-class Statemachine {
+class StateMachine {
 
       constructor(graph, init){
           this.graph = graph;
           this.state = init || {current:null,parallel:null};
-          this.action = null;
           this.handlers = {};
       }
       
@@ -27,7 +26,8 @@ class Statemachine {
           let transitionSet = this.graph[this.state.current];
           
           if(! transitionSet){
-              return this.emit("rerenderHook", this.state, new Error("state not in set"));
+               this.state.error = new Error("state not in set");
+               return this.emit("rerenderHook", this.state, (this.state.error !== null));
           }
 
           let newBehaviorState = transitionSet[eventName];
@@ -40,8 +40,13 @@ class Statemachine {
           }else if(typeof currentState === 'string'){
                   currentState = {
                         current:currentState,
-                        parallel:parallelState
+                        parallel:parallelState,
+                        error:null
                   }
+          }
+            
+          if(currentState.current === null){
+            ;
           }
             
           this.state = currentState;
@@ -65,7 +70,7 @@ class Statemachine {
           let handler = this.handlers[handlerKey];
           
           if(typeof handler == 'function'){
-              return handler(emitData);
+              return handler(...emitData);
           }
       }
 
@@ -76,9 +81,9 @@ class HecterMachine extends StateMachine {
 
     constructor(graph, init){
         super(graph, init);
-       this.stateTransitionScheduleQueue = [
+        this.stateTransitionScheduleQueue = [
 
-       ];
+        ];
     }
     
     scheduleNext(eventName, actionData){
@@ -92,6 +97,12 @@ class HecterMachine extends StateMachine {
             const {eventName, actionData} = this.stateTransitionScheduleQueue.shift();
             return this.transit(eventName, actionData);
         }
+    }
+      
+    nextAll(){
+            while(this.stateTransitionScheduleQueue.length != 0){
+                  this.next();
+            }
     }
     
     setRerenderHook(callback){
