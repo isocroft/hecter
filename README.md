@@ -29,7 +29,9 @@ let machine = new HecterMachine(transitionGraph, initialState);
 
 /** asyncActions.js */
 
-const networkRequest = (machine, action, axios) => {
+import axios from 'axios'
+
+const networkRequest = (machine, action, params) => {
 	
 	return (dispatch, getState) => {
 	
@@ -39,9 +41,7 @@ const networkRequest = (machine, action, axios) => {
 			},0);
 		};
 
-		return axios.get("https://jsonplaceholder.typicode.com/"+action.data.text, {
-			cancelToken: action.data.source.token
-		}).then(function(data){
+		return axios(params).then(function(data){
 			action.data.source = null;
 			machine.scheduleNext("$AJAX_SUCCESS_RESP", null);
 			return storeDispatch({
@@ -74,7 +74,6 @@ export { networkRequest, delay }
 /** hooks.js */
 
 import { networkRequest, delay } from './asyncActions.js'
-import axios from 'axios'
 
 const rerenderHookFactory = (component) => (state, hasError) => {
 			component._hasError = hasError;
@@ -84,7 +83,11 @@ const rerenderHookFactory = (component) => (state, hasError) => {
 const actionHandlerHookFactory = (storeorActionDispatcher) => (machine, action) => {
 			switch(action.type){
 				case "MAKE_ENTRY":
-					action = networkRequest(machine, action, axios);
+					action = networkRequest(machine, action, {
+						method:"GET",
+						url:"https://jsonplaceholder.typicode.com/"+action.data.text,
+						cancelToken:action.data.source.token
+					});
 				break;
 			}
 			
