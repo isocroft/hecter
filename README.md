@@ -29,9 +29,7 @@ let machine = new HecterMachine(transitionGraph, initialState);
 
 /** asyncActions.js */
 
-const networkRequest = (machine, action, asynPromise) => {
-	
-	// machine.scheduleNext("$$");
+const networkRequest = (machine, action, axios) => {
 	
 	return (dispatch, getState) => {
 	
@@ -41,13 +39,17 @@ const networkRequest = (machine, action, asynPromise) => {
 			},0);
 		};
 
-		return asynPromise.then(function(data){
+		return axios.get("https://jsonplaceholder.typicode.com/"+action.data.text, {
+			cancelToken: action.data.source.token
+		}).then(function(data){
+			action.data.source = null;
 			machine.scheduleNext("$AJAX_SUCCESS_RESP", null);
 			return storeDispatch({
 				type:action.type,
 				data:data
 			});
 		}).catch(function(thrownError){
+			action.data.source = null;
 			machine.scheduleNext("$AJAX_ERROR_RESP", thrownError);
 			return storeDispatch({
 				type:"",
@@ -57,12 +59,9 @@ const networkRequest = (machine, action, asynPromise) => {
 	}
 };
 
-const delay = (machine, action, ) => {
+const delay = (machine, action, promise) => (dispatch, getState) => {
 
-	return (dispatch, getState) => {
-	
-		machine.scheduleNext("$$", null);
-	}
+	//....
 };
 
 export { networkRequest, delay }
@@ -85,23 +84,11 @@ const rerenderHookFactory = (component) => (state, hasError) => {
 const actionHandlerHookFactory = (storeorActionDispatcher) => (machine, action) => {
 			switch(action.type){
 				case "MAKE_ENTRY":
-					const CancelToken = axios.CancelToken;
-					const source = CancelToken.source();
-					const promise = axios.get("https://jsonplaceholder.typicode.com/"+action.text, {
-						cancelToken: source.token
-					}).then(function(){
-						source = null;
-					});
-					
-					action = networkRequest(machine, action, promise);
-				break;
-				case "CANCEL_ENTRY":
-					source.cancel();
+					action = networkRequest(machine, action, axios);
 				break;
 			}
 			
-			if(action !== null)
-				return storeorActionDispatcher.dispatch(action);
+			return storeorActionDispatcher.dispatch(action);
 };
 
 export { actionHandlerHookFactory, rerenderHookFactory }
@@ -223,9 +210,26 @@ export default store
 /** FormUnitComponent.js */
 
 import machine from './machine.js'
+import axios from 'axios'
 
-const searchButtonClick = event => machine.transit('$SEARCH_BUTTON_CLICK', {text:event.target.form.elements['query'].value})
-const cancelButtonClick = event => machine.transit('$CANCEL_BUTTON_CLICK', null)
+const source = null
+
+const searchButtonClick = event => {
+
+	const CancelToken = axios.CancelToken;
+	const source = CancelToken.source();
+	source = source
+	
+	machine.transit('$SEARCH_BUTTON_CLICK', {text:event.target.form.elements['query'].value, source});
+}
+
+const cancelButtonClick = event => {
+
+	if(source !== null)
+		source.cancel();
+
+	machine.transit('$CANCEL_BUTTON_CLICK', null);
+}
 
 const renderInput = (data, behavior) => (
 	behavior.parallel == "form.loading"
