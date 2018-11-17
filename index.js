@@ -45,18 +45,14 @@ class StateMachine {
                   }
           }
             
-          if(currentState.current === null){
-            ;
-          }
-            
           this.state = currentState;
-          let action = newBehaviorState.action === null || actionData === null ? null : newBehaviorState.action(actionData);
+          let action = actionData === null || actionData instanceof Error
+                        ? null : newBehaviorState.action(actionData);
           
           this.emit("rerenderHook", this.state, (this.state.error !== null));
           
-            if(action !== null){
-                  return this.emit("actionHandlerHook", this, action);
-            }
+          if(action !== null)
+                  this.emit("actionHandlerHook", this, action);
       }
       
       on(handlerKey, handler){
