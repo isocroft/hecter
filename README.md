@@ -97,7 +97,7 @@ export { actionHandlerHookFactory, rerenderHookFactory }
 
 const stateGraph = {
       idle:{
-        $BUTTON_CLICK:{
+        $SEARCH_BUTTON_CLICK:{
           guard:function(stateGraph, currentState, actionData){
             return actionData.text.length > 0 
                 ? 'searching' 
@@ -129,7 +129,7 @@ const stateGraph = {
 	  	return "form.loading";
 	  }
         },
-        $BUTTON_CLICK:{
+        $CANCEL_BUTTON_CLICK:{
             guard:function(state, actionData){
                 return 'canceled';
             },
@@ -148,7 +148,7 @@ const stateGraph = {
 
 const machine = new HecterMachine(stateGraph, {current:'idle',parallel:'form.ready',error:null});
 
-export { machine }
+export default machine
 ```
 
 - **store.js**
@@ -195,7 +195,7 @@ applyMiddleware(thunkMiddleware, loggerMiddleware)
 
 store.subscribe(machine.nextAll.bind(machine));
 
-export { store }
+export default store
 
 ```
 - **FormUnitComponent.js**
@@ -203,6 +203,11 @@ export { store }
 ```js
 
 /** FormUnitComponent.js */
+
+import machine from './machine.js'
+
+const searchButtonClick = event => machine.transit('$SEARCH_BUTTON_CLICK', {text:event.target.form.elements['query'].value})
+const cancelButtonClick = event => machine.transit('$CANCEL_BUTTON_CLICK', null)
 
 const renderInput = (data, behavior) => (
 	behavior.parallel == "form.loading"
@@ -212,16 +217,16 @@ const renderInput = (data, behavior) => (
 
 const renderSearchButton = (data, behavior) => (
 	behavior.parallel == "form.loading"
-	? <button type="button" name="search" onClick={this.buttonClick.bind(this)} disabled="disabled">Searching...</button> 
-	: <button type="button" name="search" onClick={this.buttonClick.bind(this)}>Search</button>
+	? <button type="button" name="search" onClick={searchButtonClick} disabled="disabled">Searching...</button> 
+	: <button type="button" name="search" onClick={searchButtonClick}>Search</button>
 )
 
 const renderCancelButton = (data, behavior) => (
 	behavior.current === 'idle'
-	? <button type="button" name="cancel" onClick={this.buttonClick.bind(this)} disabled="disabled">Cancel</button> 
+	? <button type="button" name="cancel" onClick={cancelButtonClick} disabled="disabled">Cancel</button> 
 	: (behavior.current === 'canceled' 
-			? <button type="button" name="cancel" onClick={this.buttonClick.bind(this)}>Canceling...</button>
-			: <button type="button" name="cancel" onClick={this.buttonClick.bind(this)}>Cancel</button>)
+			? <button type="button" name="cancel" onClick={cancelButtonClick}>Canceling...</button>
+			: <button type="button" name="cancel" onClick={cancelButtonClick}>Cancel</button>)
 )
 
 const renderList = (data, behavior) => (
@@ -231,12 +236,36 @@ const renderList = (data, behavior) => (
 			<li>item</li>
 		);
 	  </ul>
-	: <p>No data yet!</p>
+	: <p>No search data yet!</p>
 )
+
+const renderLoadingMessage = (data, behavior) => {
+	let message = `Loading Search Results...`;
+	    
+    	return (
+		<p>
+			<span>{message}</span>
+		</p>
+	);
+}
+
+const renderErrorMessage = (data, behavior) => {
+	let message = `Error Loading Search Results: ${behavior.error}`;
+	    
+    	return (
+		<p>
+			<span>{message}</span>
+		</p>
+	);
+}
 
 const renderResult = (data, behavior) => (
-
+		behavior.parallel === 'form.loading' 
+		    ? renderLoadingMessage(data, behavior)
+		    : behavior.error !== null ? renderErrorMessage(data, behavior) : renderList(data, behavior)
 )
+
+
 
 const FormUnit = props => 
 	<div>
