@@ -29,31 +29,26 @@ let machine = new HecterMachine(transitionGraph, initialState);
 
 /** asyncActions.js */
 
-import axios from 'axios'
-
-const login = (machine, action) => {
+const networkRequest = (machine, action, asynPromise) => {
 	
-	const CancelToken = axios.CancelToken;
+	// machine.scheduleNext("$$");
 	
 	return (dispatch, getState) => {
 	
-		const source = CancelToken.source();
 		const storeDispatch = function(_action){
 			setTimeout(() => {
 				dispatch(_action);
 			},0);
 		};
 
-		return axios.get("https://jsonplaceholder.typicode.com/"+action.text, {
-			cancelToken: source.token
-		}).then(function(data){
-			machine.scheduleNext("AJAX_SUCCESS_RESP", null);
+		return asynPromise.then(function(data){
+			machine.scheduleNext("$AJAX_SUCCESS_RESP", null);
 			return storeDispatch({
 				type:action.type,
 				data:data
 			});
 		}).catch(function(thrownError){
-			machine.scheduleNext("AJAX_ERROR_RESP", thrownError);
+			machine.scheduleNext("$AJAX_ERROR_RESP", thrownError);
 			return storeDispatch({
 				type:"",
 				data:null
@@ -62,7 +57,15 @@ const login = (machine, action) => {
 	}
 };
 
-export { login }
+const delay = (machine, action, ) => {
+
+	return (dispatch, getState) => {
+	
+		machine.scheduleNext("$$", null);
+	}
+};
+
+export { networkRequest, delay }
 ```
 
 - **hooks.js**
@@ -71,7 +74,8 @@ export { login }
 
 /** hooks.js */
 
-import { login } from './asyncActions.js'
+import { networkRequest, delay } from './asyncActions.js'
+import axios from 'axios'
 
 const rerenderHookFactory = (component) => (state, hasError) => {
 			component._hasError = hasError;
@@ -80,10 +84,24 @@ const rerenderHookFactory = (component) => (state, hasError) => {
 
 const actionHandlerHookFactory = (storeorActionDispatcher) => (machine, action) => {
 			switch(action.type){
-				case "GET_USER":
-					return storeorActionDispatcher.dispatch(login(machine, action));
+				case "MAKE_ENTRY":
+					const CancelToken = axios.CancelToken;
+					const source = CancelToken.source();
+					const promise = axios.get("https://jsonplaceholder.typicode.com/"+action.text, {
+						cancelToken: source.token
+					}).then(function(){
+						source = null;
+					});
+					
+					action = networkRequest(machine, action, promise);
+				break;
+				case "CANCEL_ENTRY":
+					source.cancel();
 				break;
 			}
+			
+			if(action !== null)
+				return storeorActionDispatcher.dispatch(action);
 };
 
 export { actionHandlerHookFactory, rerenderHookFactory }
