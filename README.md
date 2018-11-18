@@ -340,6 +340,7 @@ const FormUnit = props =>
   	
 	constructor(props){
 
+		super(props)
 		this.state = props.machine.get();
 
 		props.machine.setRerenderHook(rerenderHookFactory(this));
@@ -348,8 +349,9 @@ const FormUnit = props =>
 		));
 	}
 
-     	componentDidMount(){
-	
+     	componentDidUnmount(){
+		
+		this.props.machine.disconnect();
 	}
 	
 	render(){
