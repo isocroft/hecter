@@ -128,7 +128,7 @@ const stateGraph = {
       },
       searching:{
         $AJAX_SUCCESS_RESP:{
-          guard:function(stateGraph, actionData){
+          guard:function(stateGraph, currentState, actionData){
              return 'idle';
           },
 	  action:null,
@@ -170,7 +170,11 @@ const stateGraph = {
       }
 };
 
-const machine = new HecterMachine(stateGraph, {current:'idle',parallel:'form.ready',error:null});
+const machine = new HecterMachine(stateGraph, {
+			current:'idle',
+			parallel:'form.ready',
+			error:null
+		});
 
 export default machine
 ```
@@ -266,7 +270,7 @@ const renderCancelButton = (data, behavior) => (
 	behavior.current === 'idle'
 	? <button type="button" name="cancel" onClick={cancelButtonClick} disabled="disabled">Cancel</button> 
 	: (behavior.current === 'canceled' 
-			? <button type="button" name="cancel" onClick={cancelButtonClick}>Canceling...</button>
+			? <button type="button" name="cancel" onClick={cancelButtonClick} disabled="disabled">Canceling...</button>
 			: <button type="button" name="cancel" onClick={cancelButtonClick}>Cancel</button>)
 )
 
