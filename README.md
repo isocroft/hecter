@@ -33,6 +33,8 @@ import axios from 'axios'
 
 const networkRequest = (machine, action, params) => {
 	
+	let source = action.data.source;
+	
 	return (dispatch, getState) => {
 	
 		const storeDispatch = function(_action){
@@ -42,14 +44,14 @@ const networkRequest = (machine, action, params) => {
 		};
 
 		return axios(params).then(function(data){
-			action.data.source = null;
+			source = null;
 			machine.scheduleNext("$AJAX_SUCCESS_RESP", null);
 			return storeDispatch({
 				type:action.type,
 				data:data
 			});
 		}).catch(function(thrownError){
-			action.data.source = null;
+			source = null;
 			machine.scheduleNext("$AJAX_ERROR_RESP", thrownError);
 			return storeDispatch({
 				type:"",
