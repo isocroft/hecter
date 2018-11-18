@@ -341,7 +341,13 @@ const FormUnit = props =>
 	constructor(props){
 
 		super(props)
-		this.state = props.machine.get();
+		
+		this.state = {
+			global:props.machine.get(), // any global state which every part/component of our app should be tracking continually
+			values:{}, // any values e.g. form values that need to be tracked
+			counts:{}, // any counter/counters that need to be tracked
+			statuses:{} // any status/statuses that need to be tracked
+		};
 
 		props.machine.setRerenderHook(rerenderHookFactory(this));
 		props.machine.setActionHandlerHook(actionHandlerHookFactory(
