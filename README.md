@@ -80,7 +80,11 @@ import { networkRequest, delay } from './asyncActions.js'
 
 const rerenderHookFactory = (component) => (state, hasError) => {
 			component._hasError = hasError;
-			return component.setState(state);
+			return component.setState((prevState) => {
+				return Object.assign({}, prevState, {
+					global:state
+				})
+			});
 };
 
 const actionHandlerHookFactory = (storeorActionDispatcher) => (machine, action) => {
@@ -118,7 +122,7 @@ const stateGraph = {
             return {type:"MAKE_ENTRY",data:actionData};
           },
           parallel:function(stateGraph, currentState){
-            return "form.ready"
+            return "form.loading"
           }
         }
       },
@@ -127,7 +131,10 @@ const stateGraph = {
           guard:function(stateGraph, actionData){
              return 'idle';
           },
-	  action:null
+	  action:null,
+          parallel:function(stateGraph, currentState){
+            return "form.ready"
+          }
         },
         $AJAX_ERROR_RESP:{
           guard:function(stateGraph, currentState, actionData){
@@ -137,22 +144,28 @@ const stateGraph = {
           },
           action:null,
 	  parallel:function(stateGraph, currentState){
-	  	return "form.loading";
+	  	return "form.ready";
 	  }
         },
         $CANCEL_BUTTON_CLICK:{
-            guard:function(state, actionData){
+            guard:function(stateGraph, currentState, actionData){
                 return 'canceled';
             },
-	    action:null
+	    action:null,
+	    parallel:function(stateGraph, currentState){
+            	return "form.ready"
+            }
         }
       },
       canceled:{
           $BUTTON_CLICK:{
-            guard:function(state, actionData){
+            guard:function(stateGraph, currentState, actionData){
 		return 'searching'
             },
-	    action:null
+	    action:null,
+	    parallel:function(stateGraph, currentState){
+            	return "form.loading"
+            }
           }
       }
 };
@@ -168,7 +181,7 @@ export default machine
 
 /** store.js */
 
-import {createStore, applyMiddleware } from 'redux'
+import { createStore, applyMiddleware } from 'redux'
 import machine from './machine.js'
 
 const thunkMiddleware = ({ dispatch, getState }) => next => action => {
