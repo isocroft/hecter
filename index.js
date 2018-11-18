@@ -27,7 +27,8 @@ class StateMachine {
           
           if(! transitionSet){
                this.state.error = new Error("state not in set");
-               return this.emit("rerenderHook", this.state, (this.state.error !== null));
+               this.emit("rerenderHook", this.state, (this.state.error !== null));
+               return null;
           }
 
           let newBehaviorState = transitionSet[eventName];
@@ -52,7 +53,7 @@ class StateMachine {
           this.emit("rerenderHook", this.state, (this.state.error !== null));
           
           if(action !== null)
-                  this.emit("actionHandlerHook", this, action);
+                  return this.emit("actionHandlerHook", this, action);
       }
       
       on(handlerKey, handler){
