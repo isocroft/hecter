@@ -34,6 +34,7 @@ import axios from 'axios'
 const networkRequest = (machine, action, params) => {
 	
 	let source = action.data.source;
+	let type = String(action.type);
 	
 	return (dispatch, getState) => {
 	
@@ -47,7 +48,7 @@ const networkRequest = (machine, action, params) => {
 			source = null;
 			machine.scheduleNext("$AJAX_SUCCESS_RESP", null);
 			return storeDispatch({
-				type:action.type,
+				type:type,
 				data:data
 			});
 		}).catch(function(thrownError){
