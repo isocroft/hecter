@@ -377,3 +377,6 @@ import machine from './machine.js'
 ReactDOM.render(<App store={store} machine={machine} />, document.getElementById("root"))
 
 ```
+## License
+
+MIT
