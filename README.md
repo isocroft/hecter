@@ -1,5 +1,5 @@
 # hecter
-A small library that utilizes the idea of state-charts to manage web app behavior enabling predictable &amp; responsive UIs by executing state transition graphs.
+A small (experimental & toy) library that utilizes the idea of state-charts and state machines to manage web app behavior enabling predictable & responsive UIs by executing state transition graphs.
 
 ## APIs
 
